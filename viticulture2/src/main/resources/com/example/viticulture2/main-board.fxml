@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane fx:id="rootAnchorPane" prefHeight="740.0" prefWidth="950.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.viticulture2.Controller.MainBoardController">
+    <padding>
+        <Insets bottom="0.0" left="0.0" right="0.0" top="0.0" />
+    </padding>
+   <children>
+      <ImageView fitHeight="740.0" fitWidth="957.0" layoutX="-14.0">
+         <image>
+            <Image url="@../../../images/viticultureMainBoardClear.jpg" />
+         </image>
+      </ImageView>
+       <Button fx:id="btn1" layoutX="230.0" layoutY="349.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="34.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="gainCoinBtn_1" layoutX="150.0" layoutY="488.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="33.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="plantActionBtn" layoutX="404.0" layoutY="481.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="26.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="btn4" layoutX="727.0" layoutY="411.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="26.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="btn5" layoutX="714.0" layoutY="243.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="34.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="btn6" layoutX="299.0" layoutY="260.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="19.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="btn7" layoutX="500.0" layoutY="323.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="11.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="btn8" layoutX="352.0" layoutY="394.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="11.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="btn9" layoutX="567.0" layoutY="376.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="26.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="convertCoinsToWorkersBtn" layoutX="597.0" layoutY="560.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="26.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="btn11" layoutX="727.0" layoutY="526.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="26.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="btn12" layoutX="245.0" layoutY="613.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="26.0" prefWidth="39.0" styleClass="round-button" />
+       <Button fx:id="gainCoinBtn_2" layoutX="500.0" layoutY="595.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="34.0" prefWidth="46.0" styleClass="round-button" />
+       <Button fx:id="btn14" layoutX="245.0" layoutY="612.0" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0" prefHeight="26.0" prefWidth="39.0" styleClass="round-button" />
+      <Button fx:id="checkPlayerStatsBtn" mnemonicParsing="false" onAction="#handleButtonClick" opacity="0.85" prefHeight="26.0" prefWidth="122.0" style="-fx-background-color: linear-gradient(to bottom, #8B4513, #D2691E); -fx-border-color: white;" text="Player stats" textFill="WHITE" />
+
+   </children>
+</AnchorPane>
