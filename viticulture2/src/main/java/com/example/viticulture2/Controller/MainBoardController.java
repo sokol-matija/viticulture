@@ -40,21 +40,8 @@ public class MainBoardController implements GameStateAware {
                 String css = Objects.requireNonNull(getClass().getResource("/styles.css")).toExternalForm();
                 rootAnchorPane.getScene().getStylesheets().add(css);
                 
-                // Create test button for debugging
-                Button testButton = new Button("Test Button Sync");
-                testButton.setLayoutX(10);
-                testButton.setLayoutY(10);
-                testButton.setOnAction(e -> {
-                    System.out.println("Test button clicked");
-                    if (networkManager != null) {
-                        ButtonAction testAction = new ButtonAction("btn1", HelloApplication.playerType);
-                        System.out.println("Sending test button action: " + testAction);
-                        networkManager.sendButtonAction(testAction);
-                    } else {
-                        System.err.println("NetworkManager is null in test button handler");
-                    }
-                });
-                rootAnchorPane.getChildren().add(testButton);
+                // Test button removed - synchronization logic is already implemented 
+                // in handleButtonClick for all game buttons
                 
                 System.out.println("MainBoardController initialized with rootAnchorPane: " + rootAnchorPane);
                 System.out.println("Child count: " + rootAnchorPane.getChildren().size());
@@ -150,23 +137,16 @@ public class MainBoardController implements GameStateAware {
         // Only send the action if this is a local click (not a simulated one)
         // and we're connected to a client
         if (!processingRemoteAction && networkManager != null) {
-            boolean readyToSend = HelloApplication.playerType == PlayerType.PLAYER_ONE ? 
-                ((HelloApplication)networkManager.getApplication()).isClientConnected() : 
-                true; // Player 2 can always send
-                
-            if (readyToSend) {
-                System.out.println("Sending button action to other client: " + buttonId);
-                ButtonAction action = new ButtonAction(buttonId, HelloApplication.playerType);
-                networkManager.sendButtonAction(action);
-            } else {
-                System.out.println("Not sending button action because client is not connected yet");
-            }
+            System.out.println("Sending button action to other client: " + buttonId);
+            ButtonAction action = new ButtonAction(buttonId, HelloApplication.playerType);
+            networkManager.sendButtonAction(action);
         }
 
         // Update our local game state based on the button clicked
         player = gameState.getCurrentPlayerByTurn();
         String message = "";
-
+        
+        // Process button actions based on ID
         switch (buttonId) {
             case "btn1":
                 clickedButton.setStyle("-fx-background-color: " + MainBoardService.colorToHex(player.getPlayerColor()));
@@ -221,6 +201,26 @@ public class MainBoardController implements GameStateAware {
             case "checkPlayerStatsBtn":
                 player = gameState.getCurrentPlayerByTurn();
                 PlayerHelper.displayCurrentPlayerState(clickedButton, player);
+                break;
+
+            // Handle remaining buttons with standard color/opacity change for now
+            // These can be updated with specific game mechanics later
+            case "btn4":
+            case "btn5":
+            case "btn6":
+            case "btn7":
+            case "btn8":
+            case "btn9":
+            case "btn11":
+            case "btn12":
+            case "btn14":
+                clickedButton.setStyle("-fx-background-color: " + MainBoardService.colorToHex(player.getPlayerColor()));
+                clickedButton.setOpacity(1);
+                // Add placeholder game mechanics for each button
+                message = "Button " + buttonId + " action performed!";
+                DialogHandler.displayMessageDialog(clickedButton, "Action", message);
+                gameState.nextTurn();
+                player = gameState.getCurrentPlayerByTurn();
                 break;
                 
             default:
