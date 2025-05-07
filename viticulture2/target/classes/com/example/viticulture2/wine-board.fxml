@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane fx:id="rootAnchorPane" prefHeight="630.0" prefWidth="940.0"
+            xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.example.viticulture2.Controller.WineBoardController">
+    <padding>
+        <Insets bottom="0.0" left="0.0" right="0.0" top="0.0" />
+    </padding>
+   <children>
+      <ImageView fitHeight="632.0" fitWidth="940.0" layoutY="-1.0">
+         <image>
+            <Image url="@../../../images/viticultureWineBoardClear.jpg" />
+         </image>
+      </ImageView>
+   </children>
+</AnchorPane>

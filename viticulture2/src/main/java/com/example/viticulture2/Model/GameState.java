@@ -1,10 +1,25 @@
 package com.example.viticulture2.Model;
 
+import javafx.scene.control.Button;
+import javafx.scene.paint.Color;
+
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
+/**
+ * Represents the current state of the game.
+ * This class is serializable to support network transmission.
+ */
 public class GameState implements Serializable {
-    public static List<Player> players;
+
+    @Serial
+    private static final long serialVersionUID = 8039747030694510364L;
+
+    public List<Player> players;
+    public Map<String, String> serializableButtons; // String button id, String button color
     private int turn;
     private boolean gameOver;
     private String winnerName;
@@ -13,6 +28,22 @@ public class GameState implements Serializable {
         this.turn = 0;
         this.gameOver = false;
         this.winnerName = null;
+        this.serializableButtons = new HashMap<>();
+    }
+
+    public Map<String, String> getSerializableButtons() {
+        return serializableButtons;
+    }
+
+    public void setSerializableButtons(Map<String, String> serializableButtons) {
+        this.serializableButtons = serializableButtons;
+    }
+
+    /**
+     * Updates a button's state in the serializable map
+     */
+    public void updateButtonState(String buttonId, String color) {
+        serializableButtons.put(buttonId, color);
     }
 
     public List<Player> getPlayers() {
@@ -63,7 +94,7 @@ public class GameState implements Serializable {
     }
 
     public void nextTurn() {
-        this.turn = (this.turn == 0) ? 1 : 0;
+        this.turn = (this.turn + 1) % players.size();
     }
 
     public Player getCurrentPlayerByTurn(){
@@ -72,6 +103,9 @@ public class GameState implements Serializable {
         return players.get(1);
     }
 
+    /**
+     * Checks if the current player is the specified player
+     */
     public boolean isCurrentPlayer(Player player) {
         return getCurrentPlayer().getName().equals(player.getName());
     }

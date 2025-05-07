@@ -34,7 +34,7 @@ public class MamaAndPapaController implements GameStateAware {
     @FXML
     public void initialize() {
         Player player_one = new Player(); Player player_two = new Player();
-        currentPlayer = PlayerHelper.initializeLoggedInPlayer(player_one, player_two);
+        currentPlayer = PlayerHelper.initializeLoggedInPlayer(gameState);
         Platform.runLater(MamaAndPapaService.showInitialDialog(currentPlayer, mamaCardFirst));
     }
 

@@ -2,6 +2,7 @@
 package com.example.viticulture2.Networking;
 
 import com.example.viticulture2.Model.GameState;
+import com.example.viticulture2.Model.ChatMessage;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -11,16 +12,17 @@ import java.util.List;
 import java.util.function.Consumer;
 
 public class Server extends Thread {
-
-    private int port;
-    private Consumer<GameState> onGameStateReceived;
-    private List<ClientHandler> clients = new ArrayList<>(); // List of connected clients
+    private final int port;
+    private final Consumer<GameState> onGameStateReceived;
+    private final Consumer<ChatMessage> onChatMessageReceived;
+    private final List<ClientHandler> clients = new ArrayList<>();
     private ServerSocket serverSocket;
-    private boolean running = true;
+    private volatile boolean running = true;
 
-    public Server(int port, Consumer<GameState> onGameStateReceived) {
+    public Server(int port, Consumer<GameState> onGameStateReceived, Consumer<ChatMessage> onChatMessageReceived) {
         this.port = port;
         this.onGameStateReceived = onGameStateReceived;
+        this.onChatMessageReceived = onChatMessageReceived;
     }
 
     @Override
@@ -37,7 +39,7 @@ public class Server extends Thread {
                 clientHandler.start();
             }
         } catch (IOException e) {
-            if (!serverSocket.isClosed()) {
+            if (serverSocket != null && !serverSocket.isClosed()) {
                 e.printStackTrace();
             }
         } finally {
@@ -46,8 +48,14 @@ public class Server extends Thread {
     }
 
     public void broadcastGameState(GameState gameState) {
-        for (ClientHandler client : clients) {
+        for (ClientHandler client : new ArrayList<>(clients)) {
             client.sendGameState(gameState);
+        }
+    }
+
+    public void sendChatMessage(ChatMessage message) {
+        for (ClientHandler client : new ArrayList<>(clients)) {
+            client.sendChatMessage(message);
         }
     }
 
@@ -61,18 +69,20 @@ public class Server extends Thread {
             if (serverSocket != null) {
                 serverSocket.close();
             }
-            for (ClientHandler client : clients) {
+            for (ClientHandler client : new ArrayList<>(clients)) {
                 client.close();
             }
+            clients.clear();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private class ClientHandler extends Thread {
-        private Socket clientSocket;
+        private final Socket clientSocket;
         private ObjectOutputStream out;
         private ObjectInputStream in;
+        private volatile boolean clientRunning = true;
 
         public ClientHandler(Socket socket) {
             this.clientSocket = socket;
@@ -81,35 +91,57 @@ public class Server extends Thread {
                 in = new ObjectInputStream(clientSocket.getInputStream());
             } catch (IOException e) {
                 e.printStackTrace();
+                close();
             }
         }
 
         @Override
         public void run() {
             try {
-                while (running) {
-                    GameState receivedState = (GameState) in.readObject();
-                    onGameStateReceived.accept(receivedState);
-                    broadcastGameState(receivedState);
+                while (clientRunning && running) {
+                    Object received = in.readObject();
+                    if (received instanceof GameState gameState) {
+                        onGameStateReceived.accept(gameState);
+                        broadcastGameState(gameState);
+                    } else if (received instanceof ChatMessage chatMessage) {
+                        onChatMessageReceived.accept(chatMessage);
+                        sendChatMessage(chatMessage);
+                    }
                 }
             } catch (IOException | ClassNotFoundException e) {
                 System.out.println("Client disconnected: " + clientSocket.getInetAddress().getHostAddress());
-                removeClient(this);
             } finally {
+                removeClient(this);
                 close();
             }
         }
 
         public void sendGameState(GameState gameState) {
             try {
-                out.writeObject(gameState);
-                out.flush();
+                if (out != null && clientRunning) {
+                    out.writeObject(gameState);
+                    out.flush();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
+                close();
+            }
+        }
+
+        public void sendChatMessage(ChatMessage message) {
+            try {
+                if (out != null && clientRunning) {
+                    out.writeObject(message);
+                    out.flush();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                close();
             }
         }
 
         public void close() {
+            clientRunning = false;
             try {
                 if (out != null) out.close();
                 if (in != null) in.close();

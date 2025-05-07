@@ -60,26 +60,40 @@ public class PlayerHelper {
 
     }
 
-    public static Player initializeLoggedInPlayer(Player player_one, Player player_two){
-        GameState.players = new ArrayList<>();
-        if(HelloApplication.playerType.name().equals(PlayerType.PLAYER_ONE.name())){
-            player_one = PlayerHelper.initializePlayerHelper("default_player_one", 0, 0, Color.WHITE,
-                    0, 0, 0, PlayerType.PLAYER_ONE);
-            GameState.players.add(player_one);
-            return player_one;
-        }else{
-            player_two = PlayerHelper.initializePlayerHelper("default_player_two", 0, 0, Color.WHITE,
-                    0, 0, 0, PlayerType.PLAYER_TWO);
-            GameState.players.add(player_two);
-            return player_two;
+    /**
+     * Initialize a new player based on the current player type
+     * @param gameState The current game state
+     * @return The initialized player
+     */
+    public static Player initializeLoggedInPlayer(GameState gameState) {
+        if (gameState.getPlayers() == null) {
+            gameState.setPlayers(new ArrayList<>());
         }
+        
+        Player newPlayer;
+        
+        if (HelloApplication.playerType == PlayerType.PLAYER_ONE || HelloApplication.playerType == PlayerType.SINGLE_PLAYER) {
+            newPlayer = PlayerHelper.initializePlayerHelper("Player 1", 0, 0, Color.RED,
+                    0, 0, 0, HelloApplication.playerType);
+        } else {
+            newPlayer = PlayerHelper.initializePlayerHelper("Player 2", 0, 0, Color.BLUE,
+                    0, 0, 0, PlayerType.PLAYER_TWO);
+        }
+        
+        // Only add the player if they're not already in the list
+        if (!gameState.getPlayers().contains(newPlayer)) {
+            gameState.getPlayers().add(newPlayer);
+        }
+        
+        return newPlayer;
     }
 
 
 
     public static Player initializePlayerHelper(String name, int workerNumber, int coinsNumber, Color color,
                                  int field, int cardPicked, int grapeTokenNumber, PlayerType playerType) {
-        return new Player(name, workerNumber, coinsNumber, color, field, cardPicked, grapeTokenNumber, playerType);
+        String colorString = color != null ? color.toString() : "";
+        return new Player(name, workerNumber, coinsNumber, color, field, cardPicked, grapeTokenNumber, playerType, colorString);
     }
 
 
