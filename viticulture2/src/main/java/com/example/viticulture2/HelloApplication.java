@@ -1,9 +1,7 @@
 package com.example.viticulture2;
 
-import com.example.viticulture2.Model.GameState;
-import com.example.viticulture2.Model.Player;
-import com.example.viticulture2.Model.PlayerType;
-import com.example.viticulture2.Model.ChatMessage;
+import com.example.viticulture2.Controller.MainBoardController;
+import com.example.viticulture2.Model.*;
 import com.example.viticulture2.Networking.Client;
 import com.example.viticulture2.Networking.NetworkManager;
 import com.example.viticulture2.Networking.Server;
@@ -40,6 +38,7 @@ public class HelloApplication extends Application {
     private Server server;
     private Client client;
     private ChatController chatController;
+    private boolean clientConnected = false;
     
     // List of controllers that need to be notified of game state changes
     private List<GameStateAware> gameStateAwareControllers = new ArrayList<>();
@@ -51,14 +50,28 @@ public class HelloApplication extends Application {
         // Initialize the player
         Player player = PlayerHelper.initializeLoggedInPlayer(gameState);
         
+        // Load the main board first to get the controller
+        FXMLLoader mainBoardLoader = createLoader("main-board.fxml");
+        Scene mainBoardScene = new Scene(mainBoardLoader.load());
+        primaryStage.setTitle("Main Board - " + playerType);
+        primaryStage.setScene(mainBoardScene);
+        primaryStage.setResizable(false);
+        
+        // Get the MainBoardController
+        MainBoardController mainBoardController = mainBoardLoader.getController();
+        
         // Initialize multiplayer if needed
         if (playerType == PlayerType.PLAYER_ONE || playerType == PlayerType.PLAYER_TWO) {
-            initializeMultiplayer();
+            // Initialize multiplayer with the controller
+            initializeMultiplayer(mainBoardController);
             // Load chat window
             loadChatWindow();
         }
         
-        loadMainBoard(primaryStage);
+        // Show the main board
+        primaryStage.show();
+        
+        // Load other windows
         loadWineBoard();
         loadPlayerColorChoice();
         loadMamaAndPapaCards();
@@ -94,13 +107,32 @@ public class HelloApplication extends Application {
         }
     }
 
-    private void initializeMultiplayer() {
+    private void initializeMultiplayer(MainBoardController mainBoardController) {
         if (playerType == PlayerType.PLAYER_ONE) {
             // First client acts as server
             try {
                 System.out.println("Starting server on port " + MULTIPLAYER_PORT);
-                server = new Server(MULTIPLAYER_PORT, this::handleReceivedGameState, this::receiveChatMessage);
+                server = new Server(MULTIPLAYER_PORT, this::handleReceivedGameState, 
+                                   this::receiveChatMessage, this::handleButtonAction,
+                                   this::handleConnectionMessage);
                 server.start();
+                
+                // Initialize NetworkManager
+                System.out.println("Initializing network manager for Player 1");
+                networkManager = new NetworkManager(
+                    playerType, 
+                    this::handleReceivedGameState, 
+                    this::receiveChatMessage, 
+                    mainBoardController,
+                    this
+                );
+                
+                // Connect the NetworkManager to the server
+                networkManager.connectToServer(server);
+                
+                // Set the network manager in the controller
+                mainBoardController.setNetworkManager(networkManager);
+                System.out.println("NetworkManager set in MainBoardController for Player 1");
                 
                 Platform.runLater(() -> {
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -116,8 +148,35 @@ public class HelloApplication extends Application {
             // Second client connects to server
             try {
                 System.out.println("Connecting to server at localhost:" + MULTIPLAYER_PORT);
-                client = new Client("localhost", MULTIPLAYER_PORT, this::handleReceivedGameState, this::receiveChatMessage);
+                client = new Client("localhost", MULTIPLAYER_PORT, this::handleReceivedGameState, 
+                                   this::receiveChatMessage, this::handleButtonAction,
+                                   this::handleConnectionMessage);
                 client.start();
+                
+                // Initialize NetworkManager
+                System.out.println("Initializing network manager for Player 2");
+                networkManager = new NetworkManager(
+                    playerType, 
+                    this::handleReceivedGameState, 
+                    this::receiveChatMessage, 
+                    mainBoardController,
+                    this
+                );
+                
+                // Connect the NetworkManager to the client
+                networkManager.connectToClient(client);
+                
+                // Set the network manager in the controller
+                mainBoardController.setNetworkManager(networkManager);
+                System.out.println("NetworkManager set in MainBoardController for Player 2");
+                
+                // Send connection message to inform server that Player 2 is ready
+                ConnectionMessage readyMsg = new ConnectionMessage(
+                    ConnectionMessage.ConnectionType.CONNECT,
+                    PlayerType.PLAYER_TWO,
+                    "Player 2 is connected and ready"
+                );
+                client.sendConnectionMessage(readyMsg);
                 
                 Platform.runLater(() -> {
                     Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -129,6 +188,44 @@ public class HelloApplication extends Application {
             } catch (Exception e) {
                 showErrorAlert("Connection Error", "Failed to connect to server: " + e.getMessage());
             }
+        }
+    }
+    
+    /**
+     * Handles button actions received from the network.
+     * This will be forwarded to the MainBoardController via NetworkManager
+     */
+    private void handleButtonAction(ButtonAction action) {
+        // The actual handling is done by MainBoardController through NetworkManager
+        System.out.println("HelloApplication received button action: " + action.getButtonId() + " from " + action.getPlayerType());
+        if (networkManager != null && networkManager.getMainBoardController() != null) {
+            System.out.println("Forwarding to MainBoardController");
+            networkManager.getMainBoardController().handleButtonAction(action);
+        } else {
+            System.err.println("Cannot forward button action - networkManager: " + 
+                              (networkManager != null) + ", mainBoardController: " + 
+                              (networkManager != null && networkManager.getMainBoardController() != null));
+        }
+    }
+    
+    /**
+     * Debug method to manually send a test button action
+     */
+    public void sendTestButtonAction(String buttonId) {
+        if (networkManager != null) {
+            System.out.println("Sending test button action: " + buttonId);
+            ButtonAction action = new ButtonAction(buttonId, playerType);
+            if (server != null) {
+                System.out.println("Sending through server");
+                server.sendButtonAction(action);
+            } else if (client != null) {
+                System.out.println("Sending through client");
+                client.sendButtonAction(action);
+            } else {
+                System.err.println("No server or client available to send test action");
+            }
+        } else {
+            System.err.println("NetworkManager is null, cannot send test action");
         }
     }
     
@@ -200,7 +297,8 @@ public class HelloApplication extends Application {
     private void loadMainBoard(Stage stage) throws IOException {
         FXMLLoader loader = createLoader("main-board.fxml");
         stage.setTitle("Main Board - " + playerType);
-        stage.setScene(new Scene(loader.load()));
+        Scene scene = new Scene(loader.load());
+        stage.setScene(scene);
         stage.setResizable(false);
         stage.show();
     }
@@ -307,6 +405,56 @@ public class HelloApplication extends Application {
         }
         if (client != null) {
             client.close();
+        }
+    }
+
+    /**
+     * Sets the client connected status
+     */
+    public void setClientConnected(boolean connected) {
+        this.clientConnected = connected;
+        System.out.println("Client connection status: " + (connected ? "CONNECTED" : "DISCONNECTED"));
+        
+        // Notify any UI elements that need to update
+        if (connected) {
+            Platform.runLater(() -> {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Connection Status");
+                alert.setHeaderText("Player 2 Connected");
+                alert.setContentText("Player 2 has connected. You can now send button actions.");
+                alert.show();
+            });
+        }
+    }
+    
+    /**
+     * Checks if client is connected
+     */
+    public boolean isClientConnected() {
+        return clientConnected;
+    }
+
+    /**
+     * Handle connection messages for tracking client connectivity
+     */
+    private void handleConnectionMessage(ConnectionMessage message) {
+        System.out.println("Received connection message: " + message);
+        
+        if (message.getType() == ConnectionMessage.ConnectionType.CONNECT) {
+            // A client has connected
+            if (playerType == PlayerType.PLAYER_ONE && message.getPlayerType() == PlayerType.PLAYER_TWO) {
+                // Player 2 has connected to Player 1's server
+                setClientConnected(true);
+                System.out.println("Player 2 has connected and is ready");
+            } else if (playerType == PlayerType.PLAYER_TWO) {
+                // Player 2 received confirmation from server
+                setClientConnected(true);
+                System.out.println("Connected to Player 1's server");
+            }
+        } else if (message.getType() == ConnectionMessage.ConnectionType.DISCONNECT) {
+            // A client has disconnected
+            setClientConnected(false);
+            System.out.println("Client disconnected: " + message.getMessage());
         }
     }
 }

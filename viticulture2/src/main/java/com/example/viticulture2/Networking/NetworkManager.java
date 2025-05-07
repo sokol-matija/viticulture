@@ -3,6 +3,8 @@ package com.example.viticulture2.Networking;
 import com.example.viticulture2.Model.ChatMessage;
 import com.example.viticulture2.Model.GameState;
 import com.example.viticulture2.Model.PlayerType;
+import com.example.viticulture2.Model.ButtonAction;
+import com.example.viticulture2.Controller.MainBoardController;
 
 import java.util.function.Consumer;
 
@@ -16,43 +18,90 @@ public class NetworkManager {
     private static final int DEFAULT_PORT = 5555;
     private final Consumer<GameState> onGameStateReceived;
     private final Consumer<ChatMessage> onChatMessageReceived;
+    private final MainBoardController mainBoardController;
+    private final Object application; // Reference to the main application
     private Server server;
     private Client client;
 
     /**
-     * Creates a network manager based on player type and handles game state updates.
+     * Creates a network manager based on player type and handles network communications.
      * 
      * @param playerType The type of player (PLAYER_ONE or PLAYER_TWO)
      * @param onGameStateReceived Callback for when game state updates are received
      * @param onChatMessageReceived Callback for when chat messages are received
+     * @param mainBoardController The main board controller for handling button actions
      */
-    public NetworkManager(PlayerType playerType, Consumer<GameState> onGameStateReceived, Consumer<ChatMessage> onChatMessageReceived) {
+    public NetworkManager(PlayerType playerType, Consumer<GameState> onGameStateReceived, 
+                         Consumer<ChatMessage> onChatMessageReceived,
+                         MainBoardController mainBoardController) {
+        this(playerType, onGameStateReceived, onChatMessageReceived, mainBoardController, null);
+    }
+    
+    /**
+     * Creates a network manager with reference to the main application.
+     */
+    public NetworkManager(PlayerType playerType, Consumer<GameState> onGameStateReceived, 
+                         Consumer<ChatMessage> onChatMessageReceived,
+                         MainBoardController mainBoardController,
+                         Object application) {
         this.onGameStateReceived = onGameStateReceived;
         this.onChatMessageReceived = onChatMessageReceived;
+        this.mainBoardController = mainBoardController;
+        this.application = application;
         
-        if (playerType == PlayerType.PLAYER_ONE) {
-            // Player one is the server
-            server = new Server(DEFAULT_PORT, this::handleReceivedGameState, this::handleReceivedChatMessage);
-            server.start();
-        } else if (playerType == PlayerType.PLAYER_TWO) {
-            // Player two is the client
-            client = new Client("localhost", DEFAULT_PORT, this::handleReceivedGameState, this::handleReceivedChatMessage);
-            client.start();
-        }
+        System.out.println("NetworkManager constructor called for " + playerType);
+        
+        // Note: Server and Client are now initialized in HelloApplication
+        // We're just using NetworkManager to handle communication logic
+    }
+
+    /**
+     * Connects this NetworkManager to an existing server instance
+     */
+    public void connectToServer(Server server) {
+        this.server = server;
+        System.out.println("NetworkManager connected to server");
+    }
+    
+    /**
+     * Connects this NetworkManager to an existing client instance
+     */
+    public void connectToClient(Client client) {
+        this.client = client;
+        System.out.println("NetworkManager connected to client");
+    }
+
+    /**
+     * Gets the MainBoardController associated with this NetworkManager
+     */
+    public MainBoardController getMainBoardController() {
+        return mainBoardController;
     }
 
     /**
      * Handles game state updates from the network
      */
     private void handleReceivedGameState(GameState gameState) {
+        System.out.println("Received game state update");
         if (onGameStateReceived != null) {
             onGameStateReceived.accept(gameState);
         }
     }
 
     private void handleReceivedChatMessage(ChatMessage message) {
+        System.out.println("Received chat message: " + message.getMessage());
         if (onChatMessageReceived != null) {
             onChatMessageReceived.accept(message);
+        }
+    }
+
+    private void handleReceivedButtonAction(ButtonAction action) {
+        System.out.println("NetworkManager received button action: " + action.getButtonId());
+        if (mainBoardController != null) {
+            System.out.println("Forwarding to MainBoardController: " + mainBoardController);
+            mainBoardController.handleButtonAction(action);
+        } else {
+            System.err.println("MainBoardController is null, cannot handle button action");
         }
     }
 
@@ -67,11 +116,35 @@ public class NetworkManager {
         }
     }
 
+    /**
+     * Sends a chat message to all connected players
+     */
     public void sendChatMessage(ChatMessage message) {
         if (server != null) {
             server.sendChatMessage(message);
         } else if (client != null) {
             client.sendChatMessage(message);
+        }
+    }
+
+    /**
+     * Sends a button action to all connected players
+     */
+    public void sendButtonAction(ButtonAction action) {
+        System.out.println("NetworkManager sending button action: " + action.getButtonId());
+        try {
+            if (server != null) {
+                System.out.println("Sending through server");
+                server.sendButtonAction(action);
+            } else if (client != null) {
+                System.out.println("Sending through client");
+                client.sendButtonAction(action);
+            } else {
+                System.err.println("No server or client available to send action");
+            }
+        } catch (Exception e) {
+            System.err.println("Error sending button action: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -86,13 +159,12 @@ public class NetworkManager {
             client.close();
         }
     }
-    
+
     /**
-     * Checks if we're connected to the network
+     * Gets the application reference
      */
-    public boolean isConnected() {
-        // This is a simplistic implementation and could be improved
-        return client != null || server != null;
+    public Object getApplication() {
+        return application;
     }
 }
 
